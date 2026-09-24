@@ -8,10 +8,8 @@ class MinimalSubscriber(Node):
     def __init__(self, topic_name):
         super().__init__(f'minimal_subscriber_{topic_name}')
         self.subscription = self.create_subscription(
-            String,
-            topic_name,
-            self.listener_callback,
-            10)
+            String, topic_name, self.listener_callback, 10
+        )
 
     def listener_callback(self, msg):
         self.get_logger().info(f'I heard on {self.get_name()}: "{msg.data}"')

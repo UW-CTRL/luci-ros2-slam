@@ -29,52 +29,77 @@ def generate_launch_description():
         executable='pointcloud_to_laserscan_node',
         name='cloud_to_scan',
         output='screen',
-        parameters=[{
-            'target_frame': 'base_link',
-            'transform_tolerance': 0.01,
-            'min_height': 0.0,
-            'max_height': 1.0,
-            'angle_min': -3.14,
-            'angle_max': 3.14,
-            'angle_increment': 0.01,
-            'scan_time': 0.1,
-            'range_min': 0.2,
-            'range_max': 5.0,
-            'use_inf': True,
-            'use_sim_time': use_sim_time,
-        }],
-        remappings=[
-            ('cloud_in', '/luci/camera_points'),
-            ('scan', '/scan')
-        ]
+        parameters=[
+            {
+                'target_frame': 'base_link',
+                'transform_tolerance': 0.01,
+                'min_height': 0.0,
+                'max_height': 1.0,
+                'angle_min': -3.14,
+                'angle_max': 3.14,
+                'angle_increment': 0.01,
+                'scan_time': 0.1,
+                'range_min': 0.2,
+                'range_max': 5.0,
+                'use_inf': True,
+                'use_sim_time': use_sim_time,
+            }
+        ],
+        remappings=[('cloud_in', '/luci/camera_points'), ('scan', '/scan')],
     )
-    
+
     # EKF Localization Node (robot_localization)
     ekf_node = Node(
         package='robot_localization',
         executable='ekf_node',
         name='ekf_filter_node',
         output='screen',
-        parameters=[{
-            'frequency': 50.0,
-            'sensor_timeout': 0.1,
-            'two_d_mode': True,
-            'odom0': '/odom',   # raw encoder odometry
-            'odom0_config': [True, True, False,
-                             False, False, True,
-                             True, False, False,
-                             False, False, False,
-                             False, False, False],
-            'imu0': '/luci/imu',
-            'imu0_config': [False, False, False,
-                            False, False, True,   # yaw orientation
-                            False, False, False,
-                            False, False, True,   # yaw velocity
-                            False, False, False],
-            'world_frame': 'odom',
-            'odom_frame': 'odom',
-            'base_link_frame': 'base_link'
-        }]
+        parameters=[
+            {
+                'frequency': 50.0,
+                'sensor_timeout': 0.1,
+                'two_d_mode': True,
+                'odom0': '/odom',  # raw encoder odometry
+                'odom0_config': [
+                    True,
+                    True,
+                    False,
+                    False,
+                    False,
+                    True,
+                    True,
+                    False,
+                    False,
+                    False,
+                    False,
+                    False,
+                    False,
+                    False,
+                    False,
+                ],
+                'imu0': '/luci/imu',
+                'imu0_config': [
+                    False,
+                    False,
+                    False,
+                    False,
+                    False,
+                    True,  # yaw orientation
+                    False,
+                    False,
+                    False,
+                    False,
+                    False,
+                    True,  # yaw velocity
+                    False,
+                    False,
+                    False,
+                ],
+                'world_frame': 'odom',
+                'odom_frame': 'odom',
+                'base_link_frame': 'base_link',
+            }
+        ],
     )
 
     # SLAM Toolbox Lifecycle node
@@ -82,7 +107,7 @@ def generate_launch_description():
         package='slam_toolbox',
         executable='sync_slam_toolbox_node',
         name='slam_toolbox',
-        namespace='',  
+        namespace='',
         output='screen',
         parameters=[
             {
@@ -93,12 +118,12 @@ def generate_launch_description():
                 'scan_topic': 'scan',
                 'mode': 'mapping',
                 'use_lifecycle_manager': use_lifecycle_manager,
-                'odom_topic': '/odometry/filtered',   # use EKF output
+                'odom_topic': '/odometry/filtered',  # use EKF output
                 'max_laser_range': 5.0,
                 'use_loop_closure': True,
                 'loop_search_maximum_distance': 5.0,
-                'loop_closure_search_radius': 5.0,    # small hallways
-                'loop_closure_match_threshold': 0.55   # more permissive
+                'loop_closure_search_radius': 5.0,  # small hallways
+                'loop_closure_match_threshold': 0.55,  # more permissive
             }
         ],
     )
@@ -107,9 +132,9 @@ def generate_launch_description():
     configure_event = EmitEvent(
         event=ChangeState(
             lifecycle_node_matcher=matches_action(slam_toolbox_node),
-            transition_id=Transition.TRANSITION_CONFIGURE
+            transition_id=Transition.TRANSITION_CONFIGURE,
         ),
-        condition=IfCondition(AndSubstitution(autostart, NotSubstitution(use_lifecycle_manager)))
+        condition=IfCondition(AndSubstitution(autostart, NotSubstitution(use_lifecycle_manager))),
     )
 
     # Register handler to activate after configured
@@ -119,27 +144,36 @@ def generate_launch_description():
             start_state='configuring',
             goal_state='inactive',
             entities=[
-                LogInfo(msg="[LifecycleLaunch] SLAM Toolbox node is activating."),
+                LogInfo(msg='[LifecycleLaunch] SLAM Toolbox node is activating.'),
                 EmitEvent(
                     event=ChangeState(
                         lifecycle_node_matcher=matches_action(slam_toolbox_node),
-                        transition_id=Transition.TRANSITION_ACTIVATE
+                        transition_id=Transition.TRANSITION_ACTIVATE,
                     )
-                )
-            ]
+                ),
+            ],
         ),
-        condition=IfCondition(AndSubstitution(autostart, NotSubstitution(use_lifecycle_manager)))
+        condition=IfCondition(AndSubstitution(autostart, NotSubstitution(use_lifecycle_manager))),
     )
 
     ld = LaunchDescription()
 
     # Declare launch arguments with defaults
-    ld.add_action(DeclareLaunchArgument('use_sim_time', default_value='false',
-                                       description='Use simulation time'))
-    ld.add_action(DeclareLaunchArgument('autostart', default_value='true',
-                                       description='Automatically start SLAM Toolbox node'))
-    ld.add_action(DeclareLaunchArgument('use_lifecycle_manager', default_value='false',
-                                       description='Use lifecycle manager'))
+    ld.add_action(
+        DeclareLaunchArgument(
+            'use_sim_time', default_value='false', description='Use simulation time'
+        )
+    )
+    ld.add_action(
+        DeclareLaunchArgument(
+            'autostart', default_value='true', description='Automatically start SLAM Toolbox node'
+        )
+    )
+    ld.add_action(
+        DeclareLaunchArgument(
+            'use_lifecycle_manager', default_value='false', description='Use lifecycle manager'
+        )
+    )
     # ld.add_action(DeclareLaunchArgument('slam_params_file',
     #                                    default_value=default_slam_params_path,
     #                                    description='Full path to SLAM Toolbox params file'))

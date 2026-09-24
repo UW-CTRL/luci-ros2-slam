@@ -2,9 +2,21 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, EmitEvent, LogInfo, RegisterEventHandler, OpaqueFunction
+from launch.actions import (
+    DeclareLaunchArgument,
+    EmitEvent,
+    LogInfo,
+    RegisterEventHandler,
+    OpaqueFunction,
+)
 from launch.conditions import IfCondition
-from launch.substitutions import AndSubstitution, LaunchConfiguration, NotSubstitution, Command, TextSubstitution
+from launch.substitutions import (
+    AndSubstitution,
+    LaunchConfiguration,
+    NotSubstitution,
+    Command,
+    TextSubstitution,
+)
 from launch_ros.actions import Node, LifecycleNode, ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 from launch_ros.events.lifecycle import ChangeState
@@ -13,26 +25,21 @@ from lifecycle_msgs.msg import Transition
 from launch.events import matches_action
 
 # Enable colored output
-os.environ["RCUTILS_COLORIZED_OUTPUT"] = "1"
+os.environ['RCUTILS_COLORIZED_OUTPUT'] = '1'
 
 # Default paths
 default_config_common = os.path.join(
-    get_package_share_directory('zed_wrapper'),
-    'config',
-    'common_stereo.yaml'
+    get_package_share_directory('zed_wrapper'), 'config', 'common_stereo.yaml'
 )
 
 default_config_cvt = os.path.join(
-    get_package_share_directory('zed_depth_to_laserscan'),
-    'config',
-    'zed_depth_to_laserscan.yaml'
+    get_package_share_directory('zed_depth_to_laserscan'), 'config', 'zed_depth_to_laserscan.yaml'
 )
 
 default_xacro_path = os.path.join(
-    get_package_share_directory('zed_wrapper'),
-    'urdf',
-    'zed_descr.urdf.xacro'
+    get_package_share_directory('zed_wrapper'), 'urdf', 'zed_descr.urdf.xacro'
 )
+
 
 def launch_setup(context, *args, **kwargs):
     # Launch configs (do NOT use .perform unless absolutely necessary)
@@ -56,15 +63,13 @@ def launch_setup(context, *args, **kwargs):
     camera_name_val = camera_name.perform(context) or 'zed'
 
     config_camera_path = os.path.join(
-        get_package_share_directory('zed_wrapper'),
-        'config',
-        camera_model_val + '.yaml'
+        get_package_share_directory('zed_wrapper'), 'config', camera_model_val + '.yaml'
     )
 
     config_rviz2 = os.path.join(
         get_package_share_directory('zed_depth_to_laserscan'),
         'rviz2',
-        'zed_depth_to_laserscan.rviz'
+        'zed_depth_to_laserscan.rviz',
     )
 
     camera_depth_frame = camera_name_val + '_left_camera_frame'
@@ -87,13 +92,24 @@ def launch_setup(context, *args, **kwargs):
         executable='robot_state_publisher',
         name='zed_state_publisher',
         output='screen',
-        parameters=[{
-            'robot_description': Command([
-                'xacro', ' ', xacro_path, ' ',
-                'camera_name:=', camera_name_val, ' ',
-                'camera_model:=', camera_model_val, ' '
-            ])
-        }]
+        parameters=[
+            {
+                'robot_description': Command(
+                    [
+                        'xacro',
+                        ' ',
+                        xacro_path,
+                        ' ',
+                        'camera_name:=',
+                        camera_name_val,
+                        ' ',
+                        'camera_model:=',
+                        camera_model_val,
+                        ' ',
+                    ]
+                )
+            }
+        ],
     )
 
     # ZED Wrapper
@@ -109,10 +125,10 @@ def launch_setup(context, *args, **kwargs):
                 'general.camera_name': camera_name_val,
                 'general.camera_model': camera_model_val,
                 'svo.svo_path': svo_path,
-                'general.serial_number': serial_number
-            }
+                'general.serial_number': serial_number,
+            },
         ],
-        extra_arguments=[{'use_intra_process_comms': True}]
+        extra_arguments=[{'use_intra_process_comms': True}],
     )
 
     # Depth to LaserScan
@@ -121,17 +137,12 @@ def launch_setup(context, *args, **kwargs):
         namespace=camera_name_val,
         plugin='depthimage_to_laserscan::DepthImageToLaserScanROS',
         name='depthimage_to_laserscan',
-        parameters=[
-            config_path_cvt,
-            {
-                'output_frame': camera_depth_frame
-            }
-        ],
+        parameters=[config_path_cvt, {'output_frame': camera_depth_frame}],
         remappings=[
             ('depth', zed_node_name_val + '/depth/depth_registered'),
             ('depth_camera_info', zed_node_name_val + '/depth/camera_info'),
-            ('/zed/scan', '/scan')
-        ]
+            ('/zed/scan', '/scan'),
+        ],
     )
 
     container = ComposableNodeContainer(
@@ -139,10 +150,7 @@ def launch_setup(context, *args, **kwargs):
         namespace=camera_name_val,
         package='rclcpp_components',
         executable='component_container',
-        composable_node_descriptions=[
-            zed_wrapper_component,
-            zed_cvt_component
-        ],
+        composable_node_descriptions=[zed_wrapper_component, zed_cvt_component],
         output='screen',
     )
 
@@ -163,19 +171,19 @@ def launch_setup(context, *args, **kwargs):
                 'scan_topic': 'scan',
                 'mode': 'mapping',
                 # 'use_lifecy   cle_manager': use_lifecycle_manager,  # optional
-            }
+            },
         ],
         remappings=[
             ('/zed/zed_node/odom', '/odom'),
-    ]
+        ],
     )
 
     configure_event = EmitEvent(
         event=ChangeState(
             lifecycle_node_matcher=matches_action(slam_toolbox_node),
-            transition_id=Transition.TRANSITION_CONFIGURE
+            transition_id=Transition.TRANSITION_CONFIGURE,
         ),
-        condition=IfCondition(AndSubstitution(autostart, NotSubstitution(use_lifecycle_manager)))
+        condition=IfCondition(AndSubstitution(autostart, NotSubstitution(use_lifecycle_manager))),
     )
 
     activate_event = RegisterEventHandler(
@@ -184,50 +192,50 @@ def launch_setup(context, *args, **kwargs):
             start_state='configuring',
             goal_state='inactive',
             entities=[
-                LogInfo(msg="[LifecycleLaunch] SLAM Toolbox node is activating."),
+                LogInfo(msg='[LifecycleLaunch] SLAM Toolbox node is activating.'),
                 EmitEvent(
                     event=ChangeState(
                         lifecycle_node_matcher=matches_action(slam_toolbox_node),
-                        transition_id=Transition.TRANSITION_ACTIVATE
+                        transition_id=Transition.TRANSITION_ACTIVATE,
                     )
-                )
-            ]
+                ),
+            ],
         ),
-        condition=IfCondition(AndSubstitution(autostart, NotSubstitution(use_lifecycle_manager)))
+        condition=IfCondition(AndSubstitution(autostart, NotSubstitution(use_lifecycle_manager))),
     )
 
-    return [
-        rviz2_node,
-        rsp_node,
-        container,
-        slam_toolbox_node,
-        configure_event,
-        activate_event
-    ]
+    return [rviz2_node, rsp_node, container, slam_toolbox_node, configure_event, activate_event]
 
 
 def generate_launch_description():
     default_slam_params_path = os.path.join(
-        get_package_share_directory('luci-ros2-slam'),
-        'config',
-        'slam_params.yaml'
+        get_package_share_directory('luci-ros2-slam'), 'config', 'slam_params.yaml'
     )
 
-    return LaunchDescription([
-        DeclareLaunchArgument('camera_name', default_value='zed'),
-        DeclareLaunchArgument('zed_node_name', default_value='zed_node'),
-        DeclareLaunchArgument('config_path', default_value=TextSubstitution(text=default_config_common)),
-        DeclareLaunchArgument('config_path_cvt', default_value=TextSubstitution(text=default_config_cvt)),
-        DeclareLaunchArgument('serial_number', default_value='0'),
-        DeclareLaunchArgument('publish_urdf', default_value='true'),
-        DeclareLaunchArgument('xacro_path', default_value=TextSubstitution(text=default_xacro_path)),
-        DeclareLaunchArgument('svo_path', default_value='live'),
-        DeclareLaunchArgument('rviz', default_value='true'),
-        DeclareLaunchArgument('camera_model', default_value='zed2i'),
-        DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('autostart', default_value='true'),
-        DeclareLaunchArgument('use_lifecycle_manager', default_value='false'),
-        DeclareLaunchArgument('slam_params_file', default_value=TextSubstitution(text=default_slam_params_path)),
-
-        OpaqueFunction(function=launch_setup)
-    ])
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument('camera_name', default_value='zed'),
+            DeclareLaunchArgument('zed_node_name', default_value='zed_node'),
+            DeclareLaunchArgument(
+                'config_path', default_value=TextSubstitution(text=default_config_common)
+            ),
+            DeclareLaunchArgument(
+                'config_path_cvt', default_value=TextSubstitution(text=default_config_cvt)
+            ),
+            DeclareLaunchArgument('serial_number', default_value='0'),
+            DeclareLaunchArgument('publish_urdf', default_value='true'),
+            DeclareLaunchArgument(
+                'xacro_path', default_value=TextSubstitution(text=default_xacro_path)
+            ),
+            DeclareLaunchArgument('svo_path', default_value='live'),
+            DeclareLaunchArgument('rviz', default_value='true'),
+            DeclareLaunchArgument('camera_model', default_value='zed2i'),
+            DeclareLaunchArgument('use_sim_time', default_value='false'),
+            DeclareLaunchArgument('autostart', default_value='true'),
+            DeclareLaunchArgument('use_lifecycle_manager', default_value='false'),
+            DeclareLaunchArgument(
+                'slam_params_file', default_value=TextSubstitution(text=default_slam_params_path)
+            ),
+            OpaqueFunction(function=launch_setup),
+        ]
+    )
